@@ -180,6 +180,43 @@
       line-height: 1.35;
     }
 
+    .almanac {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .almanac-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 760;
+    }
+
+    .almanac-note {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .almanac-line {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 8px;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .almanac-line strong {
+      white-space: nowrap;
+    }
+
     .month-section {
       margin-top: 18px;
     }
@@ -248,6 +285,13 @@
       overflow-wrap: anywhere;
     }
 
+    .day-main small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
     .wood-bg { background: var(--wood); }
     .fire-bg { background: var(--fire); }
     .earth-bg { background: var(--earth); }
@@ -306,6 +350,7 @@
           <div class="big-color" data-auspicious></div>
         </div>
         <div class="rows" data-rows></div>
+        <div class="almanac" data-almanac></div>
         <div class="meta">
           <span data-cycle></span>
           <span data-refresh></span>
@@ -326,6 +371,23 @@
     (function () {
       var anchor = new Date(2026, 1, 1);
       var cycle = ["火", "土", "金", "金", "土", "水", "水", "土", "木", "木", "土", "火"];
+      var branchCycle = ["午", "未", "申", "酉", "戌", "亥", "子", "丑", "寅", "卯", "辰", "巳"];
+      var branchOrder = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+      var almanacOrder = ["建", "除", "满", "平", "定", "执", "破", "危", "成", "收", "开", "闭"];
+      var monthBranches = [
+        { start: [1, 6], branch: "丑" },
+        { start: [2, 4], branch: "寅" },
+        { start: [3, 6], branch: "卯" },
+        { start: [4, 5], branch: "辰" },
+        { start: [5, 6], branch: "巳" },
+        { start: [6, 6], branch: "午" },
+        { start: [7, 7], branch: "未" },
+        { start: [8, 8], branch: "申" },
+        { start: [9, 8], branch: "酉" },
+        { start: [10, 8], branch: "戌" },
+        { start: [11, 7], branch: "亥" },
+        { start: [12, 7], branch: "子" }
+      ];
       var elementClass = {
         "木": "wood",
         "火": "fire",
@@ -377,15 +439,106 @@
           avoid: "红、紫、粉、橙"
         }
       };
+      var almanacByDay = {
+        "建": {
+          suitable: ["出行", "赴任", "祈福", "求嗣", "动土", "开市"],
+          unsuitable: ["嫁娶", "安葬", "修坟", "破土", "作灶"]
+        },
+        "除": {
+          suitable: ["祭祀", "沐浴", "扫舍", "解除", "求医"],
+          unsuitable: ["嫁娶", "出行", "开市", "入宅"]
+        },
+        "满": {
+          suitable: ["祭祀", "祈福", "开市", "交易", "纳财"],
+          unsuitable: ["服药", "栽种", "安葬", "破土"]
+        },
+        "平": {
+          suitable: ["祭祀", "修饰垣墙", "平治道涂", "余事勿取"],
+          unsuitable: ["嫁娶", "开市", "动土", "安葬"]
+        },
+        "定": {
+          suitable: ["订盟", "纳采", "交易", "安床", "纳财"],
+          unsuitable: ["诉讼", "出行", "搬家", "开仓"]
+        },
+        "执": {
+          suitable: ["捕捉", "立约", "纳财", "交易", "祭祀"],
+          unsuitable: ["搬家", "出行", "开仓", "入宅"]
+        },
+        "破": {
+          suitable: ["破屋", "坏垣", "求医", "治病", "解除"],
+          unsuitable: ["嫁娶", "开市", "出行", "安葬"]
+        },
+        "危": {
+          suitable: ["祭祀", "祈福", "安床", "解除", "纳财"],
+          unsuitable: ["登高", "出行", "嫁娶", "动土"]
+        },
+        "成": {
+          suitable: ["开市", "嫁娶", "入宅", "出行", "交易"],
+          unsuitable: ["诉讼", "安葬", "词讼"]
+        },
+        "收": {
+          suitable: ["祭祀", "求财", "纳财", "捕捉", "入学"],
+          unsuitable: ["开市", "嫁娶", "出行", "安葬"]
+        },
+        "开": {
+          suitable: ["开市", "交易", "嫁娶", "出行", "求财"],
+          unsuitable: ["安葬", "动土", "破土"]
+        },
+        "闭": {
+          suitable: ["祭祀", "安葬", "修造", "筑堤", "补垣"],
+          unsuitable: ["开市", "嫁娶", "出行", "求医"]
+        }
+      };
 
       function startOfLocalDay(date) {
         return new Date(date.getFullYear(), date.getMonth(), date.getDate());
       }
 
-      function getElementForDate(date) {
+      function getCycleIndex(date) {
         var day = startOfLocalDay(date);
         var diff = Math.round((day.getTime() - anchor.getTime()) / 86400000);
-        return cycle[((diff % cycle.length) + cycle.length) % cycle.length];
+        return ((diff % cycle.length) + cycle.length) % cycle.length;
+      }
+
+      function getElementForDate(date) {
+        return cycle[getCycleIndex(date)];
+      }
+
+      function getBranchForDate(date) {
+        return branchCycle[getCycleIndex(date)];
+      }
+
+      function getMonthBranch(date) {
+        var month = date.getMonth() + 1;
+        var day = date.getDate();
+        var current = "子";
+
+        monthBranches.forEach(function (item) {
+          var startMonth = item.start[0];
+          var startDay = item.start[1];
+          if (month > startMonth || (month === startMonth && day >= startDay)) {
+            current = item.branch;
+          }
+        });
+
+        return current;
+      }
+
+      function getAlmanacForDate(date) {
+        var monthBranch = getMonthBranch(date);
+        var dayBranch = getBranchForDate(date);
+        var monthIndex = branchOrder.indexOf(monthBranch);
+        var dayIndex = branchOrder.indexOf(dayBranch);
+        var almanacName = almanacOrder[((dayIndex - monthIndex) % 12 + 12) % 12];
+        var almanac = almanacByDay[almanacName];
+
+        return {
+          branch: dayBranch,
+          monthBranch: monthBranch,
+          almanacDay: almanacName + "日",
+          suitable: almanac.suitable,
+          unsuitable: almanac.unsuitable
+        };
       }
 
       function formatDateLabel(date) {
@@ -395,14 +548,19 @@
       function getGuideForDate(date) {
         var element = getElementForDate(date);
         var guide = guideByElement[element];
+        var almanac = getAlmanacForDate(date);
         return {
           dateLabel: formatDateLabel(date),
           element: element,
+          branch: almanac.branch,
+          almanacDay: almanac.almanacDay,
           auspicious: guide.auspicious,
           secondary: guide.secondary,
           third: guide.third,
           fourth: guide.fourth,
-          avoid: guide.avoid
+          avoid: guide.avoid,
+          suitable: almanac.suitable,
+          unsuitable: almanac.unsuitable
         };
       }
 
@@ -429,12 +587,19 @@
           '</div>';
       }
 
-      function nextEightAM(now) {
-        var next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
-        if (now.getTime() >= next.getTime()) {
-          next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 8, 0, 0);
-        }
-        return next;
+      function listSummary(items, limit) {
+        return items.slice(0, limit).join("、");
+      }
+
+      function renderAlmanac(guide) {
+        return '<div class="almanac-title"><span>今日宜忌 · ' + guide.branch + "日支 / " + guide.almanacDay + '</span>' +
+          '<span class="almanac-note">民俗参考</span></div>' +
+          '<div class="almanac-line"><strong>宜</strong><span>' + guide.suitable.join("、") + '</span></div>' +
+          '<div class="almanac-line"><strong>忌</strong><span>' + guide.unsuitable.join("、") + '</span></div>';
+      }
+
+      function nextRefreshTime(now) {
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
       }
 
       function render(now) {
@@ -451,8 +616,9 @@
         document.querySelector("[data-theme]").className = "today-card " + className + "-soft";
         document.querySelector("[data-auspicious]").textContent = guide.auspicious;
         document.querySelector("[data-cycle]").textContent = "今日五行：" + guide.element;
-        document.querySelector("[data-refresh]").textContent = "下次刷新 08:00";
+        document.querySelector("[data-refresh]").textContent = "下次刷新 00:00";
         document.querySelector("[data-month-title]").textContent = (today.getMonth() + 1) + "月指南";
+        document.querySelector("[data-almanac]").innerHTML = renderAlmanac(guide);
 
         rows.innerHTML = [
           guideRow("次吉", guide.secondary),
@@ -471,13 +637,14 @@
             '<div class="day-main">' +
             '<b>大吉：' + item.auspicious + '</b>' +
             '<span>次吉：' + item.secondary + '｜忌：' + item.avoid + '</span>' +
+            '<small>宜：' + listSummary(item.suitable, 3) + '｜忌：' + listSummary(item.unsuitable, 2) + '</small>' +
             '</div>' +
             '</article>';
         }).join("");
       }
 
       function scheduleRefresh() {
-        var delay = nextEightAM(new Date()).getTime() - Date.now();
+        var delay = nextRefreshTime(new Date()).getTime() - Date.now();
         window.setTimeout(function () {
           render(new Date());
           scheduleRefresh();
@@ -496,8 +663,11 @@
 
       window.WuxingDressTest = {
         getElementForDate: getElementForDate,
+        getBranchForDate: getBranchForDate,
+        getAlmanacForDate: getAlmanacForDate,
         getGuideForDate: getGuideForDate,
-        getMonthGuides: getMonthGuides
+        getMonthGuides: getMonthGuides,
+        nextRefreshTime: nextRefreshTime
       };
     }());
   </script>
