@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>每日五行穿衣</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1d1a18;
+      --muted: #6f6861;
+      --line: #e8dfd6;
+      --paper: #fffaf4;
+      --panel: #ffffff;
+      --wood: #168455;
+      --fire: #c73e36;
+      --earth: #a16c25;
+      --metal: #8b857d;
+      --water: #2d5d8c;
+      --soft-wood: #eaf7f0;
+      --soft-fire: #fff0ed;
+      --soft-earth: #fff5df;
+      --soft-metal: #f4f1ed;
+      --soft-water: #eef5ff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255, 250, 244, 0.92), rgba(250, 247, 241, 0.98)),
+        repeating-linear-gradient(90deg, rgba(199, 62, 54, 0.05) 0 1px, transparent 1px 42px);
+      color: var(--ink);
+    }
+
+    .app {
+      width: min(100%, 520px);
+      margin: 0 auto;
+      padding: 18px 14px 32px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 2px 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.12;
+      font-weight: 760;
+    }
+
+    .date {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .element-badge {
+      flex: 0 0 auto;
+      min-width: 72px;
+      min-height: 72px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 34px;
+      font-weight: 800;
+      box-shadow: 0 12px 26px rgba(29, 26, 24, 0.16);
+    }
+
+    .today-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+      box-shadow: 0 14px 34px rgba(59, 45, 30, 0.09);
+    }
+
+    .top-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      height: 8px;
+    }
+
+    .strip-wood { background: var(--wood); }
+    .strip-fire { background: var(--fire); }
+    .strip-earth { background: var(--earth); }
+    .strip-metal { background: var(--metal); }
+    .strip-water { background: var(--water); }
+
+    .today-body {
+      padding: 18px 16px 16px;
+    }
+
+    .primary {
+      display: grid;
+      gap: 10px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .big-color {
+      font-size: 26px;
+      line-height: 1.22;
+      font-weight: 780;
+    }
+
+    .rows {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .guide-row {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      align-items: center;
+      min-height: 44px;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #faf7f2;
+    }
+
+    .guide-row strong {
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .palette {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .swatches {
+      display: flex;
+      flex: 0 0 auto;
+      gap: 3px;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid rgba(29, 26, 24, 0.16);
+    }
+
+    .colors-text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .month-section {
+      margin-top: 18px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 2px 10px;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .month-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .day-item {
+      display: grid;
+      grid-template-columns: 58px 40px 1fr;
+      align-items: center;
+      gap: 8px;
+      min-height: 58px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+    }
+
+    .day-item.today {
+      border-color: rgba(199, 62, 54, 0.55);
+      box-shadow: 0 8px 20px rgba(199, 62, 54, 0.12);
+    }
+
+    .day-date {
+      font-weight: 760;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .day-element {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .day-main {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+      font-size: 14px;
+      line-height: 1.32;
+    }
+
+    .day-main b {
+      overflow-wrap: anywhere;
+    }
+
+    .day-main span {
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .wood-bg { background: var(--wood); }
+    .fire-bg { background: var(--fire); }
+    .earth-bg { background: var(--earth); }
+    .metal-bg { background: var(--metal); }
+    .water-bg { background: var(--water); }
+
+    .wood-soft { background: var(--soft-wood); }
+    .fire-soft { background: var(--soft-fire); }
+    .earth-soft { background: var(--soft-earth); }
+    .metal-soft { background: var(--soft-metal); }
+    .water-soft { background: var(--soft-water); }
+
+    @media (max-width: 360px) {
+      .app {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .element-badge {
+        min-width: 62px;
+        min-height: 62px;
+        font-size: 30px;
+      }
+
+      .day-item {
+        grid-template-columns: 50px 36px 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>每日五行穿衣</h1>
+        <div class="date" data-date></div>
+      </div>
+      <div class="element-badge" data-element-badge></div>
+    </header>
+
+    <section class="today-card" data-theme>
+      <div class="top-strip">
+        <span class="strip-wood"></span>
+        <span class="strip-fire"></span>
+        <span class="strip-earth"></span>
+        <span class="strip-metal"></span>
+        <span class="strip-water"></span>
+      </div>
+      <div class="today-body">
+        <div class="primary">
+          <div class="label">今日大吉</div>
+          <div class="big-color" data-auspicious></div>
+        </div>
+        <div class="rows" data-rows></div>
+        <div class="meta">
+          <span data-cycle></span>
+          <span data-refresh></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="month-section">
+      <h2 class="section-title">
+        <span data-month-title></span>
+        <span class="label">按日期顺序</span>
+      </h2>
+      <div class="month-list" data-month-list></div>
+    </section>
+  </main>
+
+  <script id="wuxing-app">
+    (function () {
+      var anchor = new Date(2026, 1, 1);
+      var cycle = ["火", "土", "金", "金", "土", "水", "水", "土", "木", "木", "土", "火"];
+      var elementClass = {
+        "木": "wood",
+        "火": "fire",
+        "土": "earth",
+        "金": "metal",
+        "水": "water"
+      };
+      var palettes = {
+        "绿、青": ["#168455", "#2aa876"],
+        "红、紫、粉、橙": ["#c73e36", "#8e4ec6", "#f08aa5", "#e9802d"],
+        "黄、咖、棕": ["#f2c84b", "#b7823c", "#76512d"],
+        "白、杏、银": ["#ffffff", "#f1dcc1", "#b8b8b8"],
+        "黑、灰、蓝": ["#151515", "#7f858b", "#2d5d8c"]
+      };
+      var guideByElement = {
+        "木": {
+          auspicious: "红、紫、粉、橙",
+          secondary: "绿、青",
+          third: "白、杏、银",
+          fourth: "黑、灰、蓝",
+          avoid: "黄、咖、棕"
+        },
+        "火": {
+          auspicious: "黄、咖、棕",
+          secondary: "红、紫、粉、橙",
+          third: "黑、灰、蓝",
+          fourth: "绿、青",
+          avoid: "白、杏、银"
+        },
+        "土": {
+          auspicious: "白、杏、银",
+          secondary: "黄、咖、棕",
+          third: "绿、青",
+          fourth: "红、紫、粉、橙",
+          avoid: "黑、灰、蓝"
+        },
+        "金": {
+          auspicious: "黑、灰、蓝",
+          secondary: "白、杏、银",
+          third: "红、紫、粉、橙",
+          fourth: "黄、咖、棕",
+          avoid: "绿、青"
+        },
+        "水": {
+          auspicious: "绿、青",
+          secondary: "黑、灰、蓝",
+          third: "黄、咖、棕",
+          fourth: "白、杏、银",
+          avoid: "红、紫、粉、橙"
+        }
+      };
+
+      function startOfLocalDay(date) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      }
+
+      function getElementForDate(date) {
+        var day = startOfLocalDay(date);
+        var diff = Math.round((day.getTime() - anchor.getTime()) / 86400000);
+        return cycle[((diff % cycle.length) + cycle.length) % cycle.length];
+      }
+
+      function formatDateLabel(date) {
+        return date.getFullYear() + "年" + (date.getMonth() + 1) + "月" + date.getDate() + "日";
+      }
+
+      function getGuideForDate(date) {
+        var element = getElementForDate(date);
+        var guide = guideByElement[element];
+        return {
+          dateLabel: formatDateLabel(date),
+          element: element,
+          auspicious: guide.auspicious,
+          secondary: guide.secondary,
+          third: guide.third,
+          fourth: guide.fourth,
+          avoid: guide.avoid
+        };
+      }
+
+      function getMonthGuides(year, monthIndex) {
+        var days = new Date(year, monthIndex + 1, 0).getDate();
+        var guides = [];
+        for (var day = 1; day <= days; day += 1) {
+          guides.push(getGuideForDate(new Date(year, monthIndex, day)));
+        }
+        return guides;
+      }
+
+      function swatchesFor(colorText) {
+        return (palettes[colorText] || []).map(function (color) {
+          return '<span class="swatch" style="background:' + color + '"></span>';
+        }).join("");
+      }
+
+      function guideRow(label, colorText) {
+        return '<div class="guide-row">' +
+          '<strong>' + label + '</strong>' +
+          '<div class="palette"><span class="swatches">' + swatchesFor(colorText) + '</span>' +
+          '<span class="colors-text">' + colorText + '</span></div>' +
+          '</div>';
+      }
+
+      function nextEightAM(now) {
+        var next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
+        if (now.getTime() >= next.getTime()) {
+          next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 8, 0, 0);
+        }
+        return next;
+      }
+
+      function render(now) {
+        var today = startOfLocalDay(now);
+        var guide = getGuideForDate(today);
+        var className = elementClass[guide.element];
+        var rows = document.querySelector("[data-rows]");
+        var monthList = document.querySelector("[data-month-list]");
+        var monthGuides = getMonthGuides(today.getFullYear(), today.getMonth());
+
+        document.querySelector("[data-date]").textContent = guide.dateLabel;
+        document.querySelector("[data-element-badge]").textContent = guide.element;
+        document.querySelector("[data-element-badge]").className = "element-badge " + className + "-bg";
+        document.querySelector("[data-theme]").className = "today-card " + className + "-soft";
+        document.querySelector("[data-auspicious]").textContent = guide.auspicious;
+        document.querySelector("[data-cycle]").textContent = "今日五行：" + guide.element;
+        document.querySelector("[data-refresh]").textContent = "下次刷新 08:00";
+        document.querySelector("[data-month-title]").textContent = (today.getMonth() + 1) + "月指南";
+
+        rows.innerHTML = [
+          guideRow("次吉", guide.secondary),
+          guideRow("三选", guide.third),
+          guideRow("四选", guide.fourth),
+          guideRow("忌", guide.avoid)
+        ].join("");
+
+        monthList.innerHTML = monthGuides.map(function (item, index) {
+          var dayNumber = index + 1;
+          var isToday = dayNumber === today.getDate();
+          var itemClass = elementClass[item.element];
+          return '<article class="day-item' + (isToday ? ' today' : '') + '">' +
+            '<div class="day-date">' + (today.getMonth() + 1) + "/" + dayNumber + '</div>' +
+            '<div class="day-element ' + itemClass + '-bg">' + item.element + '</div>' +
+            '<div class="day-main">' +
+            '<b>大吉：' + item.auspicious + '</b>' +
+            '<span>次吉：' + item.secondary + '｜忌：' + item.avoid + '</span>' +
+            '</div>' +
+            '</article>';
+        }).join("");
+      }
+
+      function scheduleRefresh() {
+        var delay = nextEightAM(new Date()).getTime() - Date.now();
+        window.setTimeout(function () {
+          render(new Date());
+          scheduleRefresh();
+        }, Math.max(1000, delay));
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        render(new Date());
+        scheduleRefresh();
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden) {
+            render(new Date());
+          }
+        });
+      });
+
+      window.WuxingDressTest = {
+        getElementForDate: getElementForDate,
+        getGuideForDate: getGuideForDate,
+        getMonthGuides: getMonthGuides
+      };
+    }());
+  </script>
+</body>
+</html>
