@@ -236,15 +236,11 @@
     }
 
     .day-item {
-      display: grid;
-      grid-template-columns: 58px 40px 1fr;
-      align-items: center;
-      gap: 8px;
       min-height: 58px;
-      padding: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.86);
+      overflow: hidden;
     }
 
     .day-item.today {
@@ -252,10 +248,42 @@
       box-shadow: 0 8px 20px rgba(199, 62, 54, 0.12);
     }
 
+    .day-item.past {
+      background: rgba(244, 241, 237, 0.72);
+      opacity: 0.56;
+    }
+
+    .day-summary {
+      display: grid;
+      grid-template-columns: 86px 40px 1fr;
+      align-items: center;
+      gap: 8px;
+      min-height: 58px;
+      padding: 10px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .day-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .day-item[open] .day-summary {
+      border-bottom: 1px solid var(--line);
+    }
+
     .day-date {
+      display: grid;
+      gap: 2px;
       font-weight: 760;
       font-size: 15px;
       white-space: nowrap;
+    }
+
+    .day-weekday {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
     }
 
     .day-element {
@@ -292,6 +320,25 @@
       overflow-wrap: anywhere;
     }
 
+    .day-detail {
+      display: grid;
+      gap: 8px;
+      padding: 10px 12px 12px;
+      background: rgba(255, 255, 255, 0.52);
+      font-size: 13px;
+      line-height: 1.42;
+    }
+
+    .detail-line {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 8px;
+    }
+
+    .detail-line strong {
+      white-space: nowrap;
+    }
+
     .wood-bg { background: var(--wood); }
     .fire-bg { background: var(--fire); }
     .earth-bg { background: var(--earth); }
@@ -321,7 +368,11 @@
       }
 
       .day-item {
-        grid-template-columns: 50px 36px 1fr;
+        min-height: 56px;
+      }
+
+      .day-summary {
+        grid-template-columns: 76px 36px 1fr;
       }
     }
   </style>
@@ -371,6 +422,7 @@
     (function () {
       var anchor = new Date(2026, 1, 1);
       var cycle = ["火", "土", "金", "金", "土", "水", "水", "土", "木", "木", "土", "火"];
+      var weekdayLabels = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
       var branchCycle = ["午", "未", "申", "酉", "戌", "亥", "子", "丑", "寅", "卯", "辰", "巳"];
       var branchOrder = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
       var almanacOrder = ["建", "除", "满", "平", "定", "执", "破", "危", "成", "收", "开", "闭"];
@@ -542,7 +594,7 @@
       }
 
       function formatDateLabel(date) {
-        return date.getFullYear() + "年" + (date.getMonth() + 1) + "月" + date.getDate() + "日";
+        return date.getFullYear() + "年" + (date.getMonth() + 1) + "月" + date.getDate() + "日 " + weekdayLabels[date.getDay()];
       }
 
       function getGuideForDate(date) {
@@ -551,6 +603,9 @@
         var almanac = getAlmanacForDate(date);
         return {
           dateLabel: formatDateLabel(date),
+          monthNumber: date.getMonth() + 1,
+          dayNumber: date.getDate(),
+          weekdayLabel: weekdayLabels[date.getDay()],
           element: element,
           branch: almanac.branch,
           almanacDay: almanac.almanacDay,
@@ -571,6 +626,22 @@
           guides.push(getGuideForDate(new Date(year, monthIndex, day)));
         }
         return guides;
+      }
+
+      function getDisplayMonthGuides(year, monthIndex, todayDate) {
+        var today = startOfLocalDay(todayDate);
+        var guides = getMonthGuides(year, monthIndex).map(function (guide) {
+          var guideDate = new Date(year, monthIndex, guide.dayNumber);
+          var isSameMonth = today.getFullYear() === year && today.getMonth() === monthIndex;
+          guide.isPast = isSameMonth && guideDate.getTime() < today.getTime();
+          return guide;
+        });
+
+        return guides.filter(function (guide) {
+          return !guide.isPast;
+        }).concat(guides.filter(function (guide) {
+          return guide.isPast;
+        }));
       }
 
       function swatchesFor(colorText) {
@@ -598,6 +669,10 @@
           '<div class="almanac-line"><strong>忌</strong><span>' + guide.unsuitable.join("、") + '</span></div>';
       }
 
+      function detailLine(label, value) {
+        return '<div class="detail-line"><strong>' + label + '</strong><span>' + value + '</span></div>';
+      }
+
       function nextRefreshTime(now) {
         return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
       }
@@ -608,7 +683,7 @@
         var className = elementClass[guide.element];
         var rows = document.querySelector("[data-rows]");
         var monthList = document.querySelector("[data-month-list]");
-        var monthGuides = getMonthGuides(today.getFullYear(), today.getMonth());
+        var monthGuides = getDisplayMonthGuides(today.getFullYear(), today.getMonth(), today);
 
         document.querySelector("[data-date]").textContent = guide.dateLabel;
         document.querySelector("[data-element-badge]").textContent = guide.element;
@@ -627,19 +702,31 @@
           guideRow("忌", guide.avoid)
         ].join("");
 
-        monthList.innerHTML = monthGuides.map(function (item, index) {
-          var dayNumber = index + 1;
-          var isToday = dayNumber === today.getDate();
+        monthList.innerHTML = monthGuides.map(function (item) {
+          var isToday = !item.isPast && item.dayNumber === today.getDate();
           var itemClass = elementClass[item.element];
-          return '<article class="day-item' + (isToday ? ' today' : '') + '">' +
-            '<div class="day-date">' + (today.getMonth() + 1) + "/" + dayNumber + '</div>' +
+          return '<details class="day-item' + (isToday ? ' today' : '') + (item.isPast ? ' past' : '') + '">' +
+            '<summary class="day-summary">' +
+            '<div class="day-date"><span>' + item.monthNumber + "/" + item.dayNumber + '</span><span class="day-weekday">' + item.weekdayLabel + '</span></div>' +
             '<div class="day-element ' + itemClass + '-bg">' + item.element + '</div>' +
             '<div class="day-main">' +
             '<b>大吉：' + item.auspicious + '</b>' +
             '<span>次吉：' + item.secondary + '｜忌：' + item.avoid + '</span>' +
             '<small>宜：' + listSummary(item.suitable, 3) + '｜忌：' + listSummary(item.unsuitable, 2) + '</small>' +
             '</div>' +
-            '</article>';
+            '</summary>' +
+            '<div class="day-detail">' +
+            detailLine("日期", item.dateLabel) +
+            detailLine("五行", item.element + "｜" + item.branch + "日支 / " + item.almanacDay) +
+            detailLine("大吉", item.auspicious) +
+            detailLine("次吉", item.secondary) +
+            detailLine("三选", item.third) +
+            detailLine("四选", item.fourth) +
+            detailLine("忌色", item.avoid) +
+            detailLine("宜", item.suitable.join("、")) +
+            detailLine("忌", item.unsuitable.join("、")) +
+            '</div>' +
+            '</details>';
         }).join("");
       }
 
@@ -666,6 +753,7 @@
         getBranchForDate: getBranchForDate,
         getAlmanacForDate: getAlmanacForDate,
         getGuideForDate: getGuideForDate,
+        getDisplayMonthGuides: getDisplayMonthGuides,
         getMonthGuides: getMonthGuides,
         nextRefreshTime: nextRefreshTime
       };
